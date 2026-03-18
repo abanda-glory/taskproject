@@ -12,6 +12,7 @@ class TaskForm(forms.ModelForm):
         model = Task
         fields = ['title', 'description', 'completed'] #form fields
 
+@login_required
 def task_list(request):
     tasks = Task.objects.all()
     return render(request, 'tasks/task_list.html', {'tasks': tasks})
