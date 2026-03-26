@@ -1,5 +1,7 @@
 from django.db import models
 class Task(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE,related_name='task')
+    # user = models.ForeignKey(User, on_delete=models.CASCADE,related_name='task')
     title = models.CharField(max_length=200)
     description = models.TextField()
     completed = models.BooleanField(default=False)
