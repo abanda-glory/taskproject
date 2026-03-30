@@ -3,20 +3,31 @@ from .models import Task
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.forms import AuthenticationForm
-from django.contrib.auth import login
-from django.contrib.auth import logout
+from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 
 class TaskForm(forms.ModelForm):
     class Meta: #Meta class is used for configurations
         model = Task
         fields = ['title', 'description', 'completed'] #form fields
+
+#Check if user is an admin
+def is_admin(user):
+    return user.is_superuser or user.is_staff
         
 #Home view
 @login_required
 def task_list(request):
-    tasks = Task.objects.filter(user=request.user)
-    return render(request, 'tasks/task_list.html', {'tasks': tasks})
+    #If user is admin show all tasks
+    if is_admin(request.user):
+        tasks = Task.objects.all()
+        is_admin_view = True
+    else:
+        #Only gets tasks belonging to the current user
+        tasks = Task.objects.filter(user=request.user)
+        is_admin_view = False
+    
+    return render(request, 'tasks/task_list.html', {'tasks': tasks, 'is_admin':is_admin_view})
 
 @login_required
 def task_create(request):
@@ -36,7 +47,13 @@ def task_create(request):
 
 @login_required
 def task_update(request, id):
-    task = get_object_or_404(Task, id=id)
+    #If user is admin they can edit any task
+    if is_admin(request.user):
+        task = get_object_or_404(Task, id=id)
+    else:
+        #Ensure users can only update their own task
+        task = get_object_or_404(Task, id=id, user=request.user)
+
     if request.method == 'POST':
         form = TaskForm(request.POST,  instance=task)
         if form.is_valid():
@@ -48,7 +65,12 @@ def task_update(request, id):
 
 @login_required
 def task_delete(request, id):
-    task = get_object_or_404(Task, id=id)
+    #If user is admin they can delete any tasks
+    if is_admin(request.user):
+        task = get_object_or_404(Task, id=id)
+    else:
+        #Ensure users can only delete their own tasks
+        task = get_object_or_404(Task, id=id, user=request.user)
     task.delete()
     return redirect('task_list')
 
